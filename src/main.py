@@ -1,2 +1,5 @@
+from pyserini import collection, index
+
 if __name__ == '__main__':
-    pass
+    collection = collection.Collection('HtmlCollection', 'collections/cacm/')
+    generator = index.Generator('DefaultLuceneDocumentGenerator')
