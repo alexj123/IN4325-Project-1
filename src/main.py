@@ -3,17 +3,41 @@ import csv
 from pyserini.index import IndexReader
 from pyserini.search import SimpleSearcher
 
-if __name__ == '__main__':
 
+def do_bm25():
     searcher = SimpleSearcher("data/indexes")
     searcher.set_bm25(0.9, 0.4)
 
-    with open("data/queries/msmarco-test2019-queries.tsv") as queryFile:
-        queries = csv.reader(queryFile, delimiter="\t")
+    all_hits = []
+    with open("data/queries/msmarco-test2019-queries.tsv") as query_file:
+        queries = csv.reader(query_file, delimiter="\t")
         for (qid, query) in queries:
             hits = searcher.search(query)
-            print(hits)
+            all_hits.append((qid, hits))
+            # if len(all_hits) == 25:
+            #     break
 
+    return all_hits
+
+
+if __name__ == '__main__':
+
+    res = do_bm25()
+
+    with open('data/qrels/2019qrels-pass.txt') as qrel_file:
+        qrels = csv.reader(qrel_file, delimiter=" ")
+
+        qrels_dict = {}
+        for (qid, q0, docid, rating) in qrels:
+            qrels_dict[f"{qid}{docid}"] = rating
+
+    print("rank pos/qid/docid/score_us/score_them")
+    for (qid, hits) in res:
+        rank = 0
+        for hit in hits:
+            if f"{qid}{hit.docid}" in qrels_dict:
+                print(f"{rank}/{qid}/{hit.docid}/{hit.score}/{qrels_dict[f'{qid}{hit.docid}']}")
+            rank += 1
     # query = 'atomic'
     # docids = range(0, 100)
     #
