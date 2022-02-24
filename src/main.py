@@ -1,18 +1,25 @@
 import csv
-
+import math
 from pyserini.index import IndexReader
 from pyserini.search import SimpleSearcher
 
 
 def do_bm25():
     searcher = SimpleSearcher("data/indexes")
-    searcher.set_bm25(0.9, 0.4)
+    searcher.set_bm25(1.2, 0.75)
 
     all_hits = []
     with open("data/queries/msmarco-test2019-queries.tsv") as query_file:
         queries = csv.reader(query_file, delimiter="\t")
         for (qid, query) in queries:
             hits = searcher.search(query)
+            sum_score = 0
+            for hit in hits:
+                sum_score += hit.score
+
+            # for hit in hits:
+            #     y = math.ceil(hit.score / sum_score * 4.0) - 1
+            #     hit.score = y
             all_hits.append((qid, hits))
             # if len(all_hits) == 25:
             #     break
