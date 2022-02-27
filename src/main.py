@@ -1,6 +1,4 @@
 import csv
-import math
-from pyserini.index import IndexReader
 from pyserini.search import SimpleSearcher
 
 
@@ -26,8 +24,7 @@ def do_bm25():
             max_score = hits[0].score
             for hit in hits:
                 y = hit.score / max_score
-                hit.score = get_int(y)
-            all_hits.append((qid, hits))
+                all_hits.append([qid, "Q0", hit.docid, get_int(y), hit.score, "our_id"])
 
     return all_hits
 
@@ -45,8 +42,5 @@ if __name__ == '__main__':
 
     with open("qrels.txt", "w", newline='') as qrel_res:
         write = csv.writer(qrel_res, delimiter=' ')
-        for (qid, hits) in res:
-            rank = 0
-            for hit in hits:
-                write.writerow([qid, "Q0", hit.docid, rank, int(hit.score), "our_id"])
-                rank += 1
+        for result_row in res:
+            write.writerow(result_row)
