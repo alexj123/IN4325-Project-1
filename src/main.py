@@ -46,5 +46,7 @@ if __name__ == '__main__':
     with open("qrels.txt", "w", newline='') as qrel_res:
         write = csv.writer(qrel_res, delimiter=' ')
         for (qid, hits) in res:
+            rank = 0
             for hit in hits:
-                write.writerow([qid, "Q0", hit.docid, int(hit.score)])
+                write.writerow([qid, "Q0", hit.docid, rank, int(hit.score), "our_id"])
+                rank += 1
