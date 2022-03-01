@@ -3,12 +3,7 @@ import pyterrier as pt
 
 pt.init()
 
-# file_indexer = pt.TRECCollectionIndexer("D:/Projects/Uni/IN4325-Project-1/src/l2r/data/pd_index")
-#
-# file_indexer.index("D:/Projects/Uni/IN4325-Project-1/src/l2r/data/collection.tsv")
-
-index = pt.IndexFactory.of("D:/Projects/Uni/IN4325-Project-1/src/l2r/data/pd_index")
-print(index.getCollectionStatistics().toString())
+index = pt.IndexFactory.of("D:/Projects/Uni/IN4325-Project-1/src/l2r/data/msmarco-passage-index")
 
 qrels = pd.read_csv('data/qrels.train.tsv', delimiter="\t", names=["qid", "0", "docno", "label"])
 qrels.drop(columns=["0"])
