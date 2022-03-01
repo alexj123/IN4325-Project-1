@@ -135,3 +135,5 @@ src/data/
 src/indexes/
 
 src/trec_eval-master/
+
+src/l2r/data/
