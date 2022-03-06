@@ -1,46 +1,26 @@
-import pandas as pd
 import pyterrier as pt
-import tensorflow as tf
+from pandas import DataFrame
+from sklearn.ensemble import RandomForestRegressor
 
-import tensorflow_ranking as tfr
+pt.init()
+dataset = pt.get_dataset('msmarco_passage')
 
+index = pt.IndexFactory.of("D:/Projects/Uni/IN4325-Project-1/src/l2r/data/msmarco-passage-index")
 
-def load_data():
-    qrels_raw = pd.read_csv('data/qrels.train.tsv', delimiter="\t", names=[0, 1, 2, 3])
-    qrels = tf.data.Dataset.from_tensor_slices(dict(qrels_raw))
+train_topics = dataset.get_topics("dev")
+qrels = dataset.get_qrels("dev")
 
-    documents_raw = pd.read_csv('data/collection.tsv', delimiter="\t", names=[0, 1])
-    documents = tf.data.Dataset.from_tensor_slices(dict(documents_raw))
+test_topics = dataset.get_topics("test-2019")
+test_qrels = dataset.get_qrels("test-2019")
 
-    queries_raw = pd.read_csv('data/queries.train.tsv', delimiter="\t", names=[0, 1])
-    queries = tf.data.Dataset.from_tensor_slices(dict(queries_raw))
+TF_IDF = pt.BatchRetrieve(index, vmodel="TF_IDF")
+BM25 = pt.BatchRetrieve(index, vmodel="BM25")
+PL2 = pt.BatchRetrieve(index, vmodel="PL2")
 
-    qrels.map(lambda x: {
-        "query_id": x[0],
-        "document_id": x[2],
-        "relevant": x[3]
-    })
+pipeline = BM25 % 80 >> (TF_IDF ** PL2)
+rf_pipe = pipeline.compile() >> pt.ltr.apply_learned_model(RandomForestRegressor(n_estimators=400))
 
-    documents = documents.map(lambda x: x[1])
-    queries = queries.map(lambda x: x[1])
+rf_pipe.fit(train_topics, qrels)
 
-    queries_vocabulary = tf.keras.layers.StringLookup(mask_token=None)
-    queries_vocabulary.adapt(queries.batch(1000))
-
-    documents_vocabulary = tf.keras.layers.StringLookup(mask_token=None)
-    documents_vocabulary.adapt(documents.batch(1000))
-
-    key_func = lambda x: queries_vocabulary(x["query_id"])
-    reduce_func = lambda key, dataset: dataset.batch(100)
-    ds_train = qrels.group_by_window(key_func=key_func, reduce_func=reduce_func, window_size=100)
-
-    for x in ds_train.take(1):
-        for key, value in x.items():
-            print(f"Shape of {key}: {value.shape}")
-            print(f"Example values of {key}: {value[:5].numpy()}")
-            print()
-
-
-if __name__ == "__main__":
-    pt.init()
-    load_data()
+df: DataFrame = pt.Experiment([BM25, rf_pipe], test_topics, test_qrels, ["map"], names=["BM25 Baseline", "LTR"])
+df.to_csv("l2r_res.csv")
