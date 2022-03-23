@@ -2,22 +2,19 @@ import io
 import numpy as np
 import pyterrier as pt
 from sklearn.feature_extraction import DictVectorizer
+from gensim.models import KeyedVectors
+from gensim.test.utils import datapath
+from gensim.scripts.glove2word2vec import glove2word2vec
+from sklearn.ensemble import RandomForestRegressor
 
 
-def load_vectors(fname) -> {}:
-    embeddings_dict = {}
-    with open(fname, 'r', encoding="utf-8") as f:
-        for line in f:
-            vals = line.split()
-            embeddings_dict[vals[0]] = np.array(vals[1:])
-    return embeddings_dict
+def load_vectors(f_name) -> {}:
+    _model = KeyedVectors.load_word2vec_format(f_name, no_header=True)
+    return _model
 
 
 if __name__ == "__main__":
-    vecs = load_vectors("data/glove.6B.50d.txt")
-    vec = DictVectorizer()
-
-    y = vec.fit_transform(X=vecs).toarray()
+    model = load_vectors("data/glove.6B.50d.txt")
 
     pt.init()
     dataset = pt.get_dataset('msmarco_passage')
@@ -34,7 +31,7 @@ if __name__ == "__main__":
     BM25 = pt.BatchRetrieve(index, vmodel="BM25")
 
     pipeline = pt.FeaturesBatchRetrieve(index, wmodel="BM25", features=["WMODEL:Tf"], verbose=True)
-    rf_pipe = pipeline >> pt.ltr.apply_learned_model(y)
+    rf_pipe = pipeline >> pt.ltr.apply_learned_model(model)
     rf_pipe.fit(test_topics, test_qrels)
 
     rf_pipe_fast = rf_pipe.compile()
