@@ -8,35 +8,41 @@ from gensim.scripts.glove2word2vec import glove2word2vec
 from sklearn.ensemble import RandomForestRegressor
 
 
-def load_vectors(f_name) -> {}:
+stops = set('for a of the and to in'.split())
+
+
+def _remove_stops(q):
+    terms = q["query"].split(" ")
+    terms = [t for t in terms if t not in stops]
+    return " ".join(terms)
+
+
+def compute_sim(keyFreq, posting, entryStats, collStats):
+    x = 2
+    return posting.getFrequency()
+
+
+def load_vectors(f_name) -> KeyedVectors:
     _model = KeyedVectors.load_word2vec_format(f_name, no_header=True)
     return _model
 
 
-if __name__ == "__main__":
-    model = load_vectors("data/glove.6B.50d.txt")
+model = load_vectors("data/glove.6B.50d.txt")
+print("Model loaded")
 
-    pt.init()
-    dataset = pt.get_dataset('msmarco_passage')
+pt.init()
+dataset = pt.get_dataset('msmarco_passage')
 
-    index = pt.IndexFactory.of("E:/Files/uni/in4325/project 1/IN4325-Project-1/src/data/msmarco_passage-index")
+index = pt.IndexFactory.of("E:/Files/uni/in4325/project 1/IN4325-Project-1/src/data/msmarco_passage-index")
 
-    train_topics = dataset.get_topics("dev.small")
-    train_qrels = dataset.get_qrels("dev.small")
+test_topics = dataset.get_topics("test-2019")
+test_qrels = dataset.get_qrels("test-2019")
 
-    test_topics = dataset.get_topics("test-2019")
-    test_qrels = dataset.get_qrels("test-2019")
+r = pt.apply.query(_remove_stops, verbose=True) >> pt.BatchRetrieve(index, wmodel=compute_sim)
 
-    TF_IDF = pt.BatchRetrieve(index, vmodel="TF_IDF")
-    BM25 = pt.BatchRetrieve(index, vmodel="BM25")
+l = r.transform(test_topics)
 
-    pipeline = pt.FeaturesBatchRetrieve(index, wmodel="BM25", features=["WMODEL:Tf"], verbose=True)
-    rf_pipe = pipeline >> pt.ltr.apply_learned_model(model)
-    rf_pipe.fit(test_topics, test_qrels)
+# df = pt.Experiment([r], test_topics, test_qrels)
+# df.to_csv("l2r_res.csv")
 
-    rf_pipe_fast = rf_pipe.compile()
-
-    df = pt.Experiment([BM25, rf_pipe_fast], test_topics, test_qrels, ["map"], names=["BM25 Baseline", "LTR"])
-    df.to_csv("l2r_res.csv")
-
-    x = 2
+x = 2
