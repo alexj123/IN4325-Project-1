@@ -1,4 +1,6 @@
 import io
+import random
+
 import numpy as np
 import pyterrier as pt
 from sklearn.feature_extraction import DictVectorizer
@@ -7,19 +9,33 @@ from gensim.test.utils import datapath
 from gensim.scripts.glove2word2vec import glove2word2vec
 from sklearn.ensemble import RandomForestRegressor
 
-
 stops = set('for a of the and to in'.split())
 
 
-def _remove_stops(q):
-    terms = q["query"].split(" ")
+def pre_process_query(q):
+    return _remove_stops(q["query"])
+
+
+def _remove_stops(sentence):
+    terms = sentence.split(" ")
     terms = [t for t in terms if t not in stops]
     return " ".join(terms)
 
 
-def compute_sim(keyFreq, posting, entryStats, collStats):
-    x = 2
-    return posting.getFrequency()
+def compute_sim(row):
+    q_terms = row["query"].split(" ")
+    t_terms = _remove_stops(row["text"]).split(" ")
+    sims = []
+    for t_term in t_terms:
+        for q_term in q_terms:
+            try:
+                sim = model.relative_cosine_similarity(t_term, q_term)
+                sims.append(sim)
+            except KeyError:
+                sims.append(0)
+
+    sims = np.array(sims) / len(sims)
+    return sum(sims)
 
 
 def load_vectors(f_name) -> KeyedVectors:
@@ -33,12 +49,14 @@ print("Model loaded")
 pt.init()
 dataset = pt.get_dataset('msmarco_passage')
 
-index = pt.IndexFactory.of("E:/Files/uni/in4325/project 1/IN4325-Project-1/src/data/msmarco_passage-index")
+index = pt.IndexFactory.of("E:/Files/uni/in4325/project 1/IN4325-Project-1/part2/data/msmarco-passage-index-with-meta")
+print(index.getCollectionStatistics().toString())
 
 test_topics = dataset.get_topics("test-2019")
 test_qrels = dataset.get_qrels("test-2019")
 
-r = pt.apply.query(_remove_stops, verbose=True) >> pt.BatchRetrieve(index, wmodel=compute_sim)
+r = pt.apply.query(pre_process_query, verbose=True) >> pt.BatchRetrieve(index, wmodel="BM25", verbose=True, metadata=["docno", "text"]) % 3 >> \
+    pt.apply.doc_features(compute_sim, verbose=True)  # Reranking using cos
 
 l = r.transform(test_topics)
 
