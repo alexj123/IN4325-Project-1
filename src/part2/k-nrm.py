@@ -11,6 +11,7 @@ from gensim.scripts.glove2word2vec import glove2word2vec
 from sklearn.ensemble import RandomForestRegressor
 from scipy import spatial
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.linear_model import SGDRegressor
 
 stops = set('for a of the and to in'.split())
 model = KeyedVectors.load_word2vec_format("data/glove.6B.50d.txt", no_header=True)
@@ -75,7 +76,7 @@ def apply_kernels(row):
 
 # Expects a row kernel pooling
 def soft_tf(table):
-    s_tf = np.sum(np.sum(np.log(table), axis=1))
+    s_tf = np.sum(np.log(table), axis=0)
     return s_tf
 
 
@@ -94,19 +95,30 @@ def compute_sim(row):
 
 pt.init()
 dataset = pt.get_dataset('msmarco_passage')
+
 vector_cache = DocumentVectorCache()
 
 index = pt.IndexFactory.of(
     "E:/Files/uni/in4325/project 1/IN4325-Project-1/src/part2/data/msmarco-passage-index-with-meta")
 print(index.getCollectionStatistics().toString())
 
-test_topics = test_topics = dataset.get_topics("test-2019")
-test_qrels = test_qrels = dataset.get_qrels("test-2019")
+
+train_topics = dataset.get_topics("dev")
+train_qrels = dataset.get_qrels("dev")
+
+test_topics = dataset.get_topics("test-2019")
+test_qrels = dataset.get_qrels("test-2019")
+
+sgd_classifier = SGDRegressor(loss="squared_error", penalty="l2")
 
 pipeline = pt.apply.query_vec(pre_process_query, verbose=True) >> pt.BatchRetrieve(index, wmodel="BM25", verbose=True,
                                                                                    metadata=["docno", "text"]) % 10 >> \
-           pt.apply.doc_features(compute_sim, verbose=True) << pt.ltr.apply_learned_model(learner)
+           pt.apply.doc_features(compute_sim, verbose=True) >> pt.ltr.apply_learned_model(sgd_classifier)
+
+print("Fitting model")
 pipeline.fit(test_topics, test_qrels)
+
+print("Starting experiment")
 res = pipeline.transform(test_topics)
 
 x = 2
