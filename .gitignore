@@ -130,16 +130,12 @@ dmypy.json
 
 .idea/
 
-src/data/
+data/
 
-src/indexes/
+indexes/
 
-src/trec_eval-master/
+trec_eval-master/
 
-src/l2r/data/
+index/
 
-src/index/
-
-src/res/
-
-part2/data/
+res/

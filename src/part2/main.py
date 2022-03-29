@@ -26,15 +26,8 @@ def compute_sim(row):
     q_terms = row["query"].split(" ")
     t_terms = _remove_stops(row["text"]).split(" ")
     sims = []
-    for t_term in t_terms:
-        for q_term in q_terms:
-            try:
-                sim = model.relative_cosine_similarity(t_term, q_term)
-                sims.append(sim)
-            except KeyError:
-                sims.append(0)
+    sim_matrix = np.fromfunction(lambda i, j: model.relative_cosine_similarity(q_terms[i], t_terms[j]), (len(q_terms), len(t_terms)))
 
-    sims = np.array(sims) / len(sims)
     return sum(sims)
 
 
@@ -49,7 +42,7 @@ print("Model loaded")
 pt.init()
 dataset = pt.get_dataset('msmarco_passage')
 
-index = pt.IndexFactory.of("E:/Files/uni/in4325/project 1/IN4325-Project-1/part2/data/msmarco-passage-index-with-meta")
+index = pt.IndexFactory.of("D:/Projects/Uni/IN4325-Project-1/src/part2/data/msmarco-passage-index-with-meta")
 print(index.getCollectionStatistics().toString())
 
 test_topics = dataset.get_topics("test-2019")
