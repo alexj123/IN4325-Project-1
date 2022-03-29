@@ -1,4 +1,5 @@
 import io
+import itertools
 import random
 
 import numpy as np
@@ -8,52 +9,58 @@ from gensim.models import KeyedVectors
 from gensim.test.utils import datapath
 from gensim.scripts.glove2word2vec import glove2word2vec
 from sklearn.ensemble import RandomForestRegressor
-
-stops = set('for a of the and to in'.split())
-
-
-def pre_process_query(q):
-    return _remove_stops(q["query"])
-
-
-def _remove_stops(sentence):
-    terms = sentence.split(" ")
-    terms = [t for t in terms if t not in stops]
-    return " ".join(terms)
+from scipy import spatial
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.linear_model import SGDRegressor
+import joblib
+from k_nrm import DocumentVectorCache, pre_process_query, compute_cosine_similarity
 
 
-def compute_sim(row):
-    q_terms = row["query"].split(" ")
-    t_terms = _remove_stops(row["text"]).split(" ")
-    sims = []
-    sim_matrix = np.fromfunction(lambda i, j: model.relative_cosine_similarity(q_terms[i], t_terms[j]), (len(q_terms), len(t_terms)))
-
-    return sum(sims)
-
-
-def load_vectors(f_name) -> KeyedVectors:
-    _model = KeyedVectors.load_word2vec_format(f_name, no_header=True)
-    return _model
+def get_model(preload, path=None):
+    if not preload:
+        print("New model instantiated")
+        return SGDRegressor(loss="squared_error", penalty="l2")
+    else:
+        if path is None:
+            raise ValueError("Path is required if preload is true")
+        print("Model loaded")
+        return joblib.load(path)
 
 
-model = load_vectors("data/glove.6B.50d.txt")
-print("Model loaded")
+def transform_with_model(preload=False, path=None):
+    test_topics = dataset.get_topics("test-2019")
+    test_qrels = dataset.get_qrels("test-2019")
 
-pt.init()
-dataset = pt.get_dataset('msmarco_passage')
+    sgd_classifier = get_model(preload, path)
 
-index = pt.IndexFactory.of("D:/Projects/Uni/IN4325-Project-1/src/part2/data/msmarco-passage-index-with-meta")
-print(index.getCollectionStatistics().toString())
+    BM25 = pt.apply.query_vec(pre_process_query, verbose=True) >> pt.BatchRetrieve(index, wmodel="BM25", verbose=True,
+                                                                                   metadata=["docno", "text"]) % 10
+    pipeline = BM25 >> pt.apply.doc_features(
+        compute_cosine_similarity, verbose=True) >> pt.ltr.apply_learned_model(sgd_classifier)
 
-test_topics = dataset.get_topics("test-2019")
-test_qrels = dataset.get_qrels("test-2019")
+    if not preload:
+        print("Fitting model")
+        train_topics = dataset.get_topics("dev")
+        train_qrels = dataset.get_qrels("dev")
+        pipeline.fit(train_topics, train_qrels)
 
-r = pt.apply.query(pre_process_query, verbose=True) >> pt.BatchRetrieve(index, wmodel="BM25", verbose=True, metadata=["docno", "text"]) % 3 >> \
-    pt.apply.doc_features(compute_sim, verbose=True)  # Reranking using cos
+    if not preload and path is not None:
+        print("Saving model")
+        joblib.dump(sgd_classifier, path)
 
-l = r.transform(test_topics)
+    print("Starting experiment")
+    result = pt.Experiment([BM25, pipeline], test_topics, test_qrels, ["map", "ndcg"], names=["BM25", "Pipeline"])
+    return result
 
-# df = pt.Experiment([r], test_topics, test_qrels)
-# df.to_csv("l2r_res.csv")
 
-x = 2
+if __name__ == '__main__':
+    pt.init()
+    dataset = pt.get_dataset('msmarco_passage')
+
+    index = pt.IndexFactory.of(
+        "E:/Files/uni/in4325/project 1/IN4325-Project-1/src/part2/data/msmarco-passage-index-with-meta")
+
+    res = transform_with_model(preload=False, path='res/model_sgd.pkl')
+    # res = transform_with_model(preload=True, path='res/model_sgd.pkl')
+
+    x = 2
