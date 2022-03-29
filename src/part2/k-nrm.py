@@ -11,7 +11,6 @@ from gensim.scripts.glove2word2vec import glove2word2vec
 from sklearn.ensemble import RandomForestRegressor
 from scipy import spatial
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.metrics.pairwise import rbf_kernel
 
 stops = set('for a of the and to in'.split())
 model = KeyedVectors.load_word2vec_format("data/glove.6B.50d.txt", no_header=True)
@@ -59,12 +58,25 @@ class DocumentVectorCache:
         return value
 
 
-def kernel(row):
-    row = row.reshape(-1, 1)
+def rbf_kernel(m_i, kernel_mean, kernel_var):
+    return np.sum(np.exp(-1 * ((m_i - kernel_mean) ** 2) / (2 * kernel_var ** 2)))
+
+
+# Expect a row Mi
+def apply_kernels(row):
     try:
-        return sum(rbf_kernel(row))
+        k_1 = rbf_kernel(row, -0.3, 0.1)
+        k_2 = rbf_kernel(row, 0.5, 0.1)
+        k_3 = rbf_kernel(row, 1, 0.1)
+        return [k_1, k_2, k_3]
     except ValueError:
         print("oof")
+
+
+# Expects a row kernel pooling
+def soft_tf(table):
+    s_tf = np.sum(np.sum(np.log(table), axis=1))
+    return s_tf
 
 
 def compute_sim(row):
@@ -76,27 +88,25 @@ def compute_sim(row):
     for i, value in enumerate(grid):
         similarity_matrix[i] = 1 - spatial.distance.cosine(value[0], value[1])
     similarity_matrix = similarity_matrix.reshape((len(q_vecs), len(doc_vecs)))
-    row_scores = np.apply_along_axis(kernel, 1, similarity_matrix)
-
-    return 1
+    matrix = np.apply_along_axis(apply_kernels, 1, similarity_matrix)
+    return soft_tf(matrix)
 
 
 pt.init()
 dataset = pt.get_dataset('msmarco_passage')
 vector_cache = DocumentVectorCache()
 
-index = pt.IndexFactory.of("D:/Projects/Uni/IN4325-Project-1/src/part2/data/msmarco-passage-index-with-meta")
+index = pt.IndexFactory.of(
+    "E:/Files/uni/in4325/project 1/IN4325-Project-1/src/part2/data/msmarco-passage-index-with-meta")
 print(index.getCollectionStatistics().toString())
 
-test_topics = dataset.get_topics("test-2019")
-test_qrels = dataset.get_qrels("test-2019")
+test_topics = test_topics = dataset.get_topics("test-2019")
+test_qrels = test_qrels = dataset.get_qrels("test-2019")
 
-r = pt.apply.query_vec(pre_process_query, verbose=True) >> pt.BatchRetrieve(index, wmodel="BM25", verbose=True, metadata=["docno", "text"]) % 10 >> \
-    pt.apply.doc_features(compute_sim, verbose=True)  # Reranking using cos
-
-l = r.transform(test_topics)
-
-# df = pt.Experiment([r], test_topics, test_qrels)
-# df.to_csv("l2r_res.csv")
+pipeline = pt.apply.query_vec(pre_process_query, verbose=True) >> pt.BatchRetrieve(index, wmodel="BM25", verbose=True,
+                                                                                   metadata=["docno", "text"]) % 10 >> \
+           pt.apply.doc_features(compute_sim, verbose=True) << pt.ltr.apply_learned_model(learner)
+pipeline.fit(test_topics, test_qrels)
+res = pipeline.transform(test_topics)
 
 x = 2
