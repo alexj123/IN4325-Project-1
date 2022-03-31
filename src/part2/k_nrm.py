@@ -24,7 +24,7 @@ print("Model loaded")
 
 
 def rbf_kernel(m_i, kernel_mean, kernel_var):
-    return np.sum(np.exp(-1 * ((m_i - kernel_mean) ** 2) / (2 * kernel_var ** 2)))
+    return np.sum(np.exp(-1 * ((m_i - kernel_mean) ** 2) / (2 * (kernel_var ** 2))))
 
 
 # Expect a row Mi
@@ -40,8 +40,10 @@ def apply_kernels(row):
 
 # Expects a row kernel pooling
 def soft_tf(table):
-    s_tf = np.sum(np.log(table), axis=0)
-    return s_tf
+    # s_tf = np.sum(np.log(np.where(table != 0, table, 0.000000000001)), axis=0)
+    inter = np.sum(np.log(table), axis=0)
+    inter[np.isneginf(inter)] = 0
+    return inter
 
 
 def compute_cosine_similarity(row):

@@ -33,15 +33,17 @@ def transform_with_model(preload=False, path=None):
 
     sgd_classifier = get_model(preload, path)
 
-    BM25 = pt.apply.query_vec(pre_process_query, verbose=True) >> pt.BatchRetrieve(index, wmodel="BM25", verbose=True,
-                                                                                   metadata=["docno", "text"]) % 10
-    pipeline = BM25 >> pt.apply.doc_features(
-        compute_cosine_similarity, verbose=True) >> pt.ltr.apply_learned_model(sgd_classifier)
+    BM25 = pt.apply.query_vec(pre_process_query, verbose=True) \
+           >> pt.BatchRetrieve(index, wmodel="BM25", verbose=True, metadata=["docno", "text"]) % 100
+    pipeline = ~BM25 \
+               >> pt.apply.doc_features(compute_cosine_similarity, verbose=True) \
+               >> pt.apply.text(drop=True) \
+               >> pt.ltr.apply_learned_model(sgd_classifier)
 
     if not preload:
         print("Fitting model")
-        train_topics = dataset.get_topics("dev")
-        train_qrels = dataset.get_qrels("dev")
+        train_topics = dataset.get_topics("dev.small")
+        train_qrels = dataset.get_qrels("dev.small")
         pipeline.fit(train_topics, train_qrels)
 
     if not preload and path is not None:
@@ -49,7 +51,7 @@ def transform_with_model(preload=False, path=None):
         joblib.dump(sgd_classifier, path)
 
     print("Starting experiment")
-    result = pt.Experiment([BM25, pipeline], test_topics, test_qrels, ["map", "ndcg"], names=["BM25", "Pipeline"])
+    result = pt.Experiment([~BM25, pipeline], test_topics, test_qrels, ["map", "ndcg", "P_10"], names=["BM25", "Pipeline"])
     return result
 
 
@@ -60,7 +62,7 @@ if __name__ == '__main__':
     index = pt.IndexFactory.of(
         "E:/Files/uni/in4325/project 1/IN4325-Project-1/src/part2/data/msmarco-passage-index-with-meta")
 
-    res = transform_with_model(preload=False, path='res/model_sgd.pkl')
-    # res = transform_with_model(preload=True, path='res/model_sgd.pkl')
+    # res = transform_with_model(preload=False, path='res/model_sgd_bm25_top1001.pkl')
+    res = transform_with_model(preload=True, path='res/model_sgd_bm25_top100.pkl')
 
     x = 2
