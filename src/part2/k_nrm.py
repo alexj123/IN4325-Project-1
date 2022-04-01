@@ -1,7 +1,7 @@
 import itertools
 
 import numpy as np
-from gensim.models import KeyedVectors
+from gensim.models import KeyedVectors, FastText
 from scipy import spatial
 
 
@@ -18,9 +18,10 @@ class DocumentVectorCache:
 
 
 vector_cache = DocumentVectorCache()
-model = KeyedVectors.load_word2vec_format("data/glove.6B.50d.txt", no_header=True)
+model = KeyedVectors.load_word2vec_format("data/glove.6B.300d.txt", no_header=True)
+# model = KeyedVectors.load_word2vec_format("data/wiki-news-300d-1M.vec")
 stops = set('for a of the and to in'.split())
-print("Model loaded")
+print("Vectors loaded")
 
 
 def rbf_kernel(m_i, kernel_mean, kernel_var):
@@ -40,7 +41,6 @@ def apply_kernels(row):
 
 # Expects a row kernel pooling
 def soft_tf(table):
-    # s_tf = np.sum(np.log(np.where(table != 0, table, 0.000000000001)), axis=0)
     inter = np.sum(np.log(table), axis=0)
     inter[np.isneginf(inter)] = 0
     return inter
@@ -49,6 +49,8 @@ def soft_tf(table):
 def compute_cosine_similarity(row):
     query_vectors = row["query_vec"]
     document_vectors = vector_cache.lookup(row["docid"], row["text"])
+    if len(query_vectors) == 0 or len(document_vectors):
+        return np.zeros(3)
 
     grid = list(itertools.product(query_vectors, document_vectors))
     similarity_matrix = np.zeros(len(query_vectors) * len(document_vectors))
@@ -57,6 +59,7 @@ def compute_cosine_similarity(row):
         similarity_matrix[i] = 1 - spatial.distance.cosine(value[0], value[1])
         
     similarity_matrix = similarity_matrix.reshape((len(query_vectors), len(document_vectors)))
+
     kernel_pool = np.apply_along_axis(apply_kernels, 1, similarity_matrix)
     kernel_features = soft_tf(kernel_pool)
 
