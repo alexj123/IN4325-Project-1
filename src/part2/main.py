@@ -1,20 +1,7 @@
-import io
-import itertools
-import random
-
-import numpy as np
 import pyterrier as pt
-from sklearn.feature_extraction import DictVectorizer
-from gensim.models import KeyedVectors
-from gensim.test.utils import datapath
-from gensim.scripts.glove2word2vec import glove2word2vec
-from sklearn.ensemble import RandomForestRegressor
-from scipy import spatial
-from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.linear_model import SGDRegressor
 import joblib
-from k_nrm import DocumentVectorCache, pre_process_query, compute_cosine_similarity
-import os.path
+from k_nrm import pre_process_query, compute_cosine_similarity
 from os import path as pat
 
 
