@@ -58,7 +58,7 @@ def compute_cosine_similarity(row):
     query_vectors = row["query_vec"]
     document_vectors = vector_cache.lookup(row["docid"], row["text"])
     if len(query_vectors) == 0 or len(document_vectors) == 0:
-        return np.zeros(3)
+        return np.zeros(11)
 
     grid = list(itertools.product(query_vectors, document_vectors))
     similarity_matrix = np.zeros(len(query_vectors) * len(document_vectors))
