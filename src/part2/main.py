@@ -1,3 +1,5 @@
+import os
+
 import pyterrier as pt
 from sklearn.linear_model import SGDRegressor
 import joblib
@@ -16,7 +18,7 @@ def get_model(preload, path=None):
         return joblib.load(path)
 
 
-def transform_with_model(path, preload=False):
+def transform_with_model(path, preload=False, perquery=False, save_dir=None):
     test_topics = dataset.get_topics("test-2019")
     test_qrels = dataset.get_qrels("test-2019")
 
@@ -42,8 +44,28 @@ def transform_with_model(path, preload=False):
         joblib.dump(sgd_classifier, path)
 
     print("Starting experiment")
-    result = pt.Experiment([BM25, pipeline], test_topics, test_qrels, ["map", "ndcg", "P_10"], names=["BM25", "Pipeline"])
-    return result
+    if save_dir is None:
+        return pt.Experiment(
+            [BM25, pipeline],
+            test_topics,
+            test_qrels,
+            ["map", "ndcg", "P_10"],
+            names=["BM25", "Pipeline"],
+            perquery=perquery
+        )
+    if not pat.exists(save_dir):
+        os.mkdir("res/results")
+
+    return pt.Experiment(
+        [BM25, pipeline],
+        test_topics,
+        test_qrels,
+        ["map", "ndcg", "P_10"],
+        names=["BM25", "Pipeline"],
+        perquery=perquery,
+        save_dir="res/results",
+        save_mode="overwrite"
+    )
 
 
 if __name__ == '__main__':
@@ -51,9 +73,14 @@ if __name__ == '__main__':
     dataset = pt.get_dataset('msmarco_passage')
 
     index = pt.IndexFactory.of(
-        "E:/Files/uni/in4325/project 1/IN4325-Project-1/src/part2/data/msmarco-passage-index-with-meta")
+        "D:\\Projects\\Uni\\IN4325-Project-1\\src\\part2\\data\\msmarco-passage-index-with-meta")
 
-    res = transform_with_model(preload=False, path='res/model_glove_300d_sgd_bm25_top100_3.pkl')
-    # res = transform_with_model(preload=True, path='res/model_fasttext_300d_sgd_bm25_top100.pkl')
+    # res = transform_with_model(preload=False, path='res/model_glove_300d_sgd_bm25_top100_3.pkl')
+    res = transform_with_model(
+        preload=True,
+        path='res/model_fasttext_300d_sgd_bm25_top100_REAL.pkl',
+        perquery=True,
+        save_dir="res/res_run_1"
+    )
 
     x = 2

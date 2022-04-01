@@ -18,8 +18,8 @@ class DocumentVectorCache:
 
 
 vector_cache = DocumentVectorCache()
-model = KeyedVectors.load_word2vec_format("data/glove.6B.300d.txt", no_header=True)
-# model = KeyedVectors.load_word2vec_format("data/wiki-news-300d-1M.vec")
+# model = KeyedVectors.load_word2vec_format("data/glove.6B.300d.txt", no_header=True)
+model = KeyedVectors.load_word2vec_format("data/wiki-news-300d-1M.vec")
 stops = set('for a of the and to in'.split())
 print("Vectors loaded")
 
