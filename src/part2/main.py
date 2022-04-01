@@ -7,8 +7,8 @@ from k_nrm import pre_process_query, compute_cosine_similarity
 from os import path as pat
 
 
-def get_model(preload, path=None):
-    if not preload:
+def get_model(exists, path=None):
+    if not exists:
         print("New model instantiated")
         return SGDRegressor(loss="squared_error", penalty="l2")
     else:
@@ -18,14 +18,12 @@ def get_model(preload, path=None):
         return joblib.load(path)
 
 
-def transform_with_model(path, preload=False, perquery=False, save_dir=None):
+def transform_with_model(path, perquery=False, save_dir=None):
     test_topics = dataset.get_topics("test-2019")
     test_qrels = dataset.get_qrels("test-2019")
 
-    if pat.exists(path) and preload is False:
-        raise ValueError("Path already exists, delete the existing model or change the path")
-
-    sgd_classifier = get_model(preload, path)
+    exists = pat.exists(path)
+    sgd_classifier = get_model(exists, path)
 
     BM25 = pt.apply.query_vec(pre_process_query, verbose=True) \
            >> pt.BatchRetrieve(index, wmodel="BM25", verbose=True, metadata=["docno", "text"]) % 100
@@ -34,7 +32,7 @@ def transform_with_model(path, preload=False, perquery=False, save_dir=None):
                >> pt.apply.text(drop=True) \
                >> pt.ltr.apply_learned_model(sgd_classifier)
 
-    if not preload:
+    if not exists:
         print("Fitting model")
         train_topics = dataset.get_topics("dev.small")
         train_qrels = dataset.get_qrels("dev.small")
@@ -77,8 +75,7 @@ if __name__ == '__main__':
 
     # res = transform_with_model(preload=False, path='res/model_glove_300d_sgd_bm25_top100_3.pkl')
     res = transform_with_model(
-        preload=True,
-        path='res/model_fasttext_300d_sgd_bm25_top100_REAL.pkl',
+        path='res/model_glove_300d_sgd_bm25_top100_kernel11.pkl',
         perquery=True,
         save_dir="res/res_run_1"
     )

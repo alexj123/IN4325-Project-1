@@ -18,8 +18,8 @@ class DocumentVectorCache:
 
 
 vector_cache = DocumentVectorCache()
-# model = KeyedVectors.load_word2vec_format("data/glove.6B.300d.txt", no_header=True)
-model = KeyedVectors.load_word2vec_format("data/wiki-news-300d-1M.vec")
+model = KeyedVectors.load_word2vec_format("data/glove.6B.300d.txt", no_header=True)
+# model = KeyedVectors.load_word2vec_format("data/wiki-news-300d-1M.vec")
 stops = set('for a of the and to in'.split())
 print("Vectors loaded")
 
@@ -31,10 +31,18 @@ def rbf_kernel(m_i, kernel_mean, kernel_var):
 # Expect a row Mi
 def apply_kernels(row):
     try:
-        k_1 = rbf_kernel(row, -0.3, 0.1)
-        k_2 = rbf_kernel(row, 0.5, 0.1)
-        k_3 = rbf_kernel(row, 1, 0.1)
-        return [k_1, k_2, k_3]
+        k_1 = rbf_kernel(row, 1, 0.001)
+        k_2 = rbf_kernel(row, 0.9, 0.1)
+        k_3 = rbf_kernel(row, 0.7, 0.1)
+        k_4 = rbf_kernel(row, 0.5, 0.1)
+        k_5 = rbf_kernel(row, 0.3, 0.1)
+        k_6 = rbf_kernel(row, 0.1, 0.1)
+        k_7 = rbf_kernel(row, -0.1, 0.1)
+        k_8 = rbf_kernel(row, -0.3, 0.1)
+        k_9 = rbf_kernel(row, -0.5, 0.1)
+        k_10 = rbf_kernel(row, -0.7, 0.1)
+        k_11 = rbf_kernel(row, -0.9, 0.1)
+        return [k_1, k_2, k_3, k_4, k_5, k_6, k_7, k_8, k_9, k_10, k_11]
     except ValueError:
         print("oof")
 
