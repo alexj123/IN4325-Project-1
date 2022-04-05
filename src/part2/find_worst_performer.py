@@ -35,6 +35,8 @@ def write_docs_and_queries_to_file(res_file, qid, output_name):
 
 
 if __name__ == "__main__":
-    write_docs_and_queries_to_file("res/old_l2r/LTR.res", 1106007, "LTR")
-    write_docs_and_queries_to_file("res/model_glove_300d_sgd_bm25_top100_kernels11/Pipeline.res", 1106007, "glove")
-    write_docs_and_queries_to_file("res/model_fasttext_300d_sgd_bm25_top100_kernels11/Pipeline.res", 1106007, "fasttext")
+    print("Working...")
+    write_docs_and_queries_to_file("res/old_l2r/LTR.res", 1121709, "LTR")
+    write_docs_and_queries_to_file("res/model_glove_300d_sgd_bm25_top100_kernels11/Pipeline.res", 1121709, "glove")
+    write_docs_and_queries_to_file("res/model_fasttext_300d_sgd_bm25_top100_kernels11/Pipeline.res", 1121709, "fasttext")
+    print("Done!")
