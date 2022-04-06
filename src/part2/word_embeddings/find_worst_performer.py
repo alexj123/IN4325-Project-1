@@ -2,9 +2,9 @@ import pandas as pd
 
 
 def print_worst5():
-    ft = pd.read_csv("res/model_fasttext_300d_sgd_bm25_top100_kernels11/per_query.csv", delimiter=";")
-    gl = pd.read_csv("res/model_glove_300d_sgd_bm25_top100_kernels11/per_query.csv", delimiter=";")
-    l2r = pd.read_csv("res/old_l2r/per_query.csv", delimiter=";")
+    ft = pd.read_csv("../res/model_fasttext_300d_sgd_bm25_top100_kernels11/per_query.csv", delimiter=";")
+    gl = pd.read_csv("../res/model_glove_300d_sgd_bm25_top100_kernels11/per_query.csv", delimiter=";")
+    l2r = pd.read_csv("../res/old_l2r/per_query.csv", delimiter=";")
 
     # Find top 5 worst performers for MAP metric
     worst5_l2r = l2r[(l2r["measure"] == "map") & (l2r["name"] == "LTR")].sort_values(by="value").head(5)[
@@ -21,8 +21,8 @@ def print_worst5():
     print(worst5_all)
 
 
-docs = pd.read_csv("data/collections/collection.tsv", delimiter="\t", header=None, names=["docid", "doctext"])
-queries = pd.read_csv("data/queries/msmarco-test2019-queries.tsv", delimiter="\t", header=None, names=["qid", "text"])
+docs = pd.read_csv("../data/collections/collection.tsv", delimiter="\t", header=None, names=["docid", "doctext"])
+queries = pd.read_csv("../data/queries/msmarco-test2019-queries.tsv", delimiter="\t", header=None, names=["qid", "text"])
 
 
 def write_docs_and_queries_to_file(res_file, qid, output_name):
@@ -36,7 +36,7 @@ def write_docs_and_queries_to_file(res_file, qid, output_name):
 
 if __name__ == "__main__":
     print("Working...")
-    write_docs_and_queries_to_file("res/old_l2r/LTR.res", 1121709, "LTR")
-    write_docs_and_queries_to_file("res/model_glove_300d_sgd_bm25_top100_kernels11/Pipeline.res", 1121709, "glove")
-    write_docs_and_queries_to_file("res/model_fasttext_300d_sgd_bm25_top100_kernels11/Pipeline.res", 1121709, "fasttext")
+    write_docs_and_queries_to_file("../res/old_l2r/LTR.res", 1121709, "LTR")
+    write_docs_and_queries_to_file("../res/model_glove_300d_sgd_bm25_top100_kernels11/Pipeline.res", 1121709, "glove")
+    write_docs_and_queries_to_file("../res/model_fasttext_300d_sgd_bm25_top100_kernels11/Pipeline.res", 1121709, "fasttext")
     print("Done!")
